@@ -97,7 +97,7 @@ const fixedColumns = [
         id: "Location",
         name: "Location",
         readonly: true,
-        renderCell: renderLocation,
+        renderCell: renderSimpleCell,
         width: new ObservableValue(-35),
         sortProps: {
             ariaLabelAscending: "Sorted A to Z",
