@@ -1,68 +1,86 @@
+import { Card } from "azure-devops-ui/Card";
+import { ObservableValue } from "azure-devops-ui/Core/Observable";
+import { DropdownFilterBarItem } from "azure-devops-ui/Dropdown";
+import { FilterBar } from "azure-devops-ui/FilterBar";
+import { MessageCard, MessageCardSeverity } from "azure-devops-ui/MessageCard";
+import { Observer } from "azure-devops-ui/Observer";
+import { Tab, TabBar, TabSize } from "azure-devops-ui/Tabs";
+import { KeywordFilterBarItem } from "azure-devops-ui/TextFilterBarItem";
+import {
+    DropdownSelection
+} from "azure-devops-ui/Utilities/DropdownSelection";
+import { FILTER_CHANGE_EVENT, Filter, FilterOperatorType } from "azure-devops-ui/Utilities/Filter";
 import * as React from 'react';
-import {Tab, TabBar, TabSize} from "azure-devops-ui/Tabs";
+import { FilesystemReport } from "./FilesystemReport";
+import { ImageReport } from "./ImageReport";
 import {
     ArtifactType,
-    countAllReportsIssues,
-    countAllReportsMisconfigurations,
-    countAllReportsSecrets,
-    countAllReportsVulnerabilities,
-    countReportIssues,
-    Report,
-    getReportTitle,
     AssuranceReport,
+    Report,
+    Summary,
+    SummaryEntry
 } from './trivy';
-import {ImageReport} from "./ImageReport";
-import {FilesystemReport} from "./FilesystemReport";
-import {MessageCard, MessageCardSeverity} from "azure-devops-ui/MessageCard";
-import {Card} from "azure-devops-ui/Card";
 
 interface ReportsPaneProps {
-    reports: Report[]
+    summary: Summary
+    getReport: (name: string) => Promise<Report | undefined>
     assuranceReports: AssuranceReport[]
 }
 
 interface ReportsPaneState {
     selectedTabId: string
+    report?: Report
+    sdkReady: boolean
+}
+
+interface FilterState {
+    repository: string
+    owner: string
 }
 
 export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneState> {
-
     public props: ReportsPaneProps
     public state: ReportsPaneState
 
+    private filter: Filter;
+    private currentState = new ObservableValue({} as FilterState);
+    private selectionOwner = new DropdownSelection();
+
     constructor(props: ReportsPaneProps) {
         super(props)
-        if (props.reports === null) {
-            props.reports = []
-        }
-        if (props.assuranceReports === null) {
-            props.assuranceReports = []
-        }
-        this.props = props
+
+        this.filter = new Filter();
+        this.filter.setFilterItemState("owner", {
+            value: "",
+            operator: FilterOperatorType.and
+        })
+        this.filter.subscribe(() => {
+            const owner = this.filter.getState()["owner"]
+            const repository = this.filter.getState()["repository"]
+            this.currentState.value = { repository: repository?.value, owner: owner?.value[0] }
+        }, FILTER_CHANGE_EVENT)
+
         this.state = {
-            selectedTabId: "0"
+            selectedTabId: "",
+            sdkReady: false,
         }
     }
 
     private onSelectedTabChanged = (newTabId: string) => {
-        this.setState({selectedTabId: newTabId});
+        this.setState({ selectedTabId: newTabId })
+
+        this.props.getReport(newTabId).then(report => {
+            this.setState({ report: report })
+        })
     };
 
-    private getReport(): Report {
-        if(this.props.reports.length === 0) {
-            return null
-        }
-        return this.props.reports[parseInt(this.state.selectedTabId)]
-    }
-
-    private getAssuranceReport(): AssuranceReport | undefined{
-        const report = this.getReport()
-        if(report === null) {
+    private getAssuranceReport(): AssuranceReport | undefined {
+        if (this.state.report === null) {
             return undefined
         }
         let assuranceReport: AssuranceReport | undefined = undefined
         this.props.assuranceReports.forEach(match => {
-            if (report.ArtifactType == match.Report.ArtifactType && report.ArtifactName == match.Report.ArtifactName) {
+            if (this.state.report!.ArtifactType == match.Report.ArtifactType && this.state.report!.ArtifactName == match.Report.ArtifactName) {
                 assuranceReport = match
             }
         })
@@ -73,81 +91,118 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
         const stats = [
             {
                 name: "Total Scans",
-                value: this.props.reports.length,
+                value: this.props.summary.results?.length ?? 0
             },
             {
                 name: "Total Issues",
-                value: countAllReportsIssues(this.props.reports)
+                value: this.props.summary.results.reduce((previous, current) => previous += current.secretsCount, 0)
             },
             {
                 name: "Vulnerabilities",
-                value: countAllReportsVulnerabilities(this.props.reports)
+                value: 0
             },
             {
                 name: "Misconfigurations",
-                value: countAllReportsMisconfigurations(this.props.reports)
+                value: 0
             },
             {
                 name: "Secrets",
-                value: countAllReportsSecrets(this.props.reports)
+                value: this.props.summary.results.reduce((previous, current) => previous += current.secretsCount, 0)
             }
         ]
-        return (
-            <div className="flex-column">
-                {
-                    this.props.reports.length === 0 ?
-                        <MessageCard
-                            className="flex-self-stretch"
-                            severity={MessageCardSeverity.Info}
-                        >
-                            No reports found for this build. Add Trivy to your pipeline configuration or check the build
-                            logs for more information.
-                        </MessageCard> :
-                        <div className="flex-grow">
-                            <div className="flex-row" style={{paddingBottom: 100}}>
-                                <Card className="flex-grow">
-                                    <div className="flex-row" style={{flexWrap: "wrap"}}>
-                                        {stats.map((items, index) => (
-                                            <div className="flex-column" style={{minWidth: "120px"}} key={index}>
-                                                <div className="body-m secondary-text">{items.name}</div>
-                                                <div className="body-m primary-text">{items.value}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </Card>
-                            </div>
-                            <div className="flex-row" style={{overflow: "auto"}}>
-                                <TabBar
-                                    onSelectedTabChanged={this.onSelectedTabChanged}
-                                    selectedTabId={this.state.selectedTabId}
-                                    tabSize={TabSize.Tall}
-                                >
-                                    {
-                                        this.props.reports.map(function (report: Report, index: number) {
-                                            return (
-                                                <Tab
-                                                    key={index}
-                                                    id={index + ""}
-                                                    name={getReportTitle(report)}
-                                                    badgeCount={countReportIssues(report)}
-                                                />
-                                            )
-                                        })
-                                    }
-                                </TabBar>
-                            </div>
-                            <div className="flex-grow">
-                                <div className="tab-content">
-                                {
-                                    this.getReport().ArtifactType == ArtifactType.Image ?
-                                        <ImageReport report={this.getReport()} assurance={this.getAssuranceReport()}/> :
-                                        <FilesystemReport report={this.getReport()} assurance={this.getAssuranceReport()}/>
-                                }
-                                </div>
-                            </div>
-                        </div>
-                }
 
+        return (
+            <div>
+                <div className="flex-column">
+                    {
+                        this.props.summary.results?.length === 0 ?
+                            <MessageCard
+                                className="flex-self-stretch"
+                                severity={MessageCardSeverity.Info}
+                            >
+                                No reports found for this build. Add Trivy to your pipeline configuration or check the build
+                                logs for more information.
+                            </MessageCard> :
+                            <div className="flex-grow">
+                                <div className="flex-row" style={{ paddingBottom: 40 }}>
+                                    <Card className="flex-grow">
+                                        <div className="flex-row" style={{ flexWrap: "wrap" }}>
+                                            {stats.map((items, index) => (
+                                                <div className="flex-column" style={{ minWidth: "120px" }} key={index}>
+                                                    <div className="body-m secondary-text">{items.name}</div>
+                                                    <div className="body-m primary-text">{items.value}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </Card>
+                                </div>
+                                <div className="flex-row" style={{ paddingBottom: 20 }}>
+                                    <div className="flex-grow">
+                                        <FilterBar filter={this.filter}>
+                                            <KeywordFilterBarItem filterItemKey="repository" placeholder="Repository name" />
+
+                                            <DropdownFilterBarItem
+                                                filterItemKey="owner"
+                                                filter={this.filter}
+                                                items={this.props.summary.results
+                                                    .reduce((acc: string[], current) => {
+                                                        if (!acc.includes(current.owner)) {
+                                                            acc.push(current.owner)
+                                                        }
+                                                        return acc
+                                                    }, [])
+                                                    .map(owner => ({
+                                                        id: owner,
+                                                        key: owner,
+                                                        text: owner
+                                                    }))
+                                                }
+                                                selection={this.selectionOwner}
+                                                placeholder="Owner"
+                                            />
+                                        </FilterBar>
+                                    </div>
+                                </div>
+                                <div className="flex-row" style={{ overflow: "auto" }}>
+                                    <Observer currentState={this.currentState}>
+                                        {(props: { currentState: FilterState }) => (
+                                            <TabBar
+                                                onSelectedTabChanged={this.onSelectedTabChanged}
+                                                selectedTabId={this.state.selectedTabId}
+                                                tabSize={TabSize.Tall}
+                                            >
+                                                {
+                                                    this.props.summary.results
+                                                        ?.filter((entry: SummaryEntry) => (
+                                                            (props.currentState.repository?.length > 0 ? entry.repository.toLowerCase().includes(props.currentState.repository?.toLowerCase() ?? "") : true) &&
+                                                            (props.currentState.owner?.length > 0 ? entry.owner.toLowerCase() === props.currentState.owner.toLowerCase() : true)
+                                                        ))
+                                                        ?.map((entry: SummaryEntry, index: number) => (
+                                                            <Tab
+                                                                key={index}
+                                                                id={`${entry.repository}`}
+                                                                name={`Filesystem: ${entry.repository}`}
+                                                                badgeCount={entry.secretsCount} />
+                                                        ))
+                                                }
+                                            </TabBar>
+                                        )}
+                                    </Observer>
+                                </div>
+                                <div className="flex-grow">
+                                    <div className="tab-content">
+                                        {
+                                            this.state.report ?
+                                                this.state.report.ArtifactType == ArtifactType.Image ?
+                                                    <ImageReport report={this.state.report} assurance={this.getAssuranceReport()} /> :
+                                                    <FilesystemReport report={this.state.report} assurance={this.getAssuranceReport()} />
+                                                : <div></div>
+                                        }
+                                    </div>
+                                </div>
+                            </div >
+                    }
+                </div>
             </div>
         )
     }
