@@ -111,7 +111,7 @@ export class App extends React.Component<AppProps, AppState> {
 
         const summaryAttachments = await this.buildClient.getAttachments(this.projectId, build.id, "JSON_SUMMARY")
         if (summaryId === "" || summaryAttachments.length !== 1) {
-            this.setState({error: "No summary found: cannot load results. Did Trivy run properly?"})
+            this.setState({ error: "No summary found: cannot load results. Did Trivy run properly?" })
             return
         }
 
@@ -189,7 +189,12 @@ export class App extends React.Component<AppProps, AppState> {
         return JSON.parse(output);
     }
 
-    async handleGetReport (name: string): Promise<Report | undefined> {
+    async handleGetReport(name: string): Promise<Report | undefined> {
+        const report = this.state.reports.find(r => r.ArtifactName === name)
+        if (report) {
+            return report
+        }
+
         try {
             const buffer = await this.buildClient.getAttachment(
                 this.state.projectId,
@@ -200,9 +205,10 @@ export class App extends React.Component<AppProps, AppState> {
                 `trivy-${name}`,
             )
             const report = this.decode<Report>(buffer)
+            this.setState({ reports: [...this.state.reports, report] })
 
             return report
-        } catch(e) {
+        } catch (e) {
             console.log("Failed to decode results attachment")
         }
 
