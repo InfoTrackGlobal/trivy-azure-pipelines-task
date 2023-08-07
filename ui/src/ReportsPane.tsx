@@ -181,7 +181,7 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
                                                             <Tab
                                                                 key={index}
                                                                 id={`${entry.repository}`}
-                                                                name={`Filesystem: ${entry.repository}`}
+                                                                name={`${entry.repository}`}
                                                                 badgeCount={entry.secretsCount} />
                                                         ))
                                                 }
