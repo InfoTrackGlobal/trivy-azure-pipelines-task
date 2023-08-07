@@ -1,4 +1,5 @@
 import { Card } from "azure-devops-ui/Card";
+import { Checkbox } from "azure-devops-ui/Checkbox";
 import { ObservableValue } from "azure-devops-ui/Core/Observable";
 import { DropdownFilterBarItem } from "azure-devops-ui/Dropdown";
 import { FilterBar } from "azure-devops-ui/FilterBar";
@@ -36,6 +37,7 @@ interface ReportsPaneState {
 interface FilterState {
     repository: string
     owner: string
+    withIssues: boolean
 }
 
 export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneState> {
@@ -45,6 +47,7 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
     private filter: Filter;
     private currentState = new ObservableValue({} as FilterState);
     private selectionOwner = new DropdownSelection();
+    private onlyWithIssues = new ObservableValue<boolean>(false);
 
     constructor(props: ReportsPaneProps) {
         super(props)
@@ -54,10 +57,16 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
             value: "",
             operator: FilterOperatorType.and
         })
+        this.filter.setFilterItemState("withIssues", {
+            value: false,
+            operator: FilterOperatorType.and
+        })
         this.filter.subscribe(() => {
             const owner = this.filter.getState()["owner"]
             const repository = this.filter.getState()["repository"]
-            this.currentState.value = { repository: repository?.value, owner: owner?.value[0] }
+            const withIssues = this.filter.getState()["withIssues"]
+
+            this.currentState.value = { repository: repository?.value, owner: owner?.value[0], withIssues: withIssues?.value }
         }, FILTER_CHANGE_EVENT)
 
         this.state = {
@@ -68,7 +77,6 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
 
     private onSelectedTabChanged = (newTabId: string) => {
         this.setState({ selectedTabId: newTabId })
-
         this.props.getReport(newTabId).then(report => {
             this.setState({ report: report })
         })
@@ -85,6 +93,11 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
             }
         })
         return assuranceReport
+    }
+
+    componentDidMount(): void {
+        if (this.props.summary.results.length > 0)
+            this.setState({ selectedTabId: this.props.summary.results[0].repository })
     }
 
     render() {
@@ -138,15 +151,26 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
                                 </div>
                                 <div className="flex-row" style={{ paddingBottom: 20 }}>
                                     <div className="flex-grow">
-                                        <FilterBar filter={this.filter}>
+                                        <FilterBar filter={this.filter} onDismissClicked={() => this.onlyWithIssues.value = false}>
                                             <KeywordFilterBarItem filterItemKey="repository" placeholder="Repository name" />
 
+                                            <Checkbox
+                                                onChange={(_, checked) => {
+                                                    this.onlyWithIssues.value = checked
+                                                    this.filter.setFilterItemState("withIssues", {
+                                                        value: checked,
+                                                        operator: FilterOperatorType.and
+                                                    })
+                                                }}
+                                                checked={this.onlyWithIssues}
+                                                label="With Issues"
+                                            />
                                             <DropdownFilterBarItem
                                                 filterItemKey="owner"
                                                 filter={this.filter}
                                                 items={this.props.summary.results
                                                     .reduce((acc: string[], current) => {
-                                                        if (!acc.includes(current.owner)) {
+                                                        if (!acc.includes(current.owner) && current.owner !== "") {
                                                             acc.push(current.owner)
                                                         }
                                                         return acc
@@ -175,7 +199,8 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
                                                     this.props.summary.results
                                                         ?.filter((entry: SummaryEntry) => (
                                                             (props.currentState.repository?.length > 0 ? entry.repository.toLowerCase().includes(props.currentState.repository?.toLowerCase() ?? "") : true) &&
-                                                            (props.currentState.owner?.length > 0 ? entry.owner.toLowerCase() === props.currentState.owner.toLowerCase() : true)
+                                                            (props.currentState.owner?.length > 0 ? entry.owner.toLowerCase() === props.currentState.owner.toLowerCase() : true) &&
+                                                            (props.currentState.withIssues ? entry.secretsCount > 0 : true)
                                                         ))
                                                         ?.map((entry: SummaryEntry, index: number) => (
                                                             <Tab
