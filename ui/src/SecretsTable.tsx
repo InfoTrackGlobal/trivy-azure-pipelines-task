@@ -4,7 +4,6 @@ import {
     ColumnSorting,
     ISimpleTableCell,
     renderSimpleCell,
-    SimpleTableCell,
     sortItems,
     SortOrder,
     Table,
@@ -31,16 +30,6 @@ interface ListSecret extends ISimpleTableCell {
 
 function renderSecretSeverity(rowIndex: number, columnIndex: number, tableColumn: ITableColumn<ListSecret>, tableItem: ListSecret): JSX.Element {
     return renderSeverity(rowIndex, columnIndex, tableColumn, tableItem.Severity.text as Severity)
-}
-
-function renderLocation(rowIndex: number, columnIndex: number, tableColumn: ITableColumn<ListSecret>, tableItem: ListSecret): JSX.Element {
-    return <SimpleTableCell
-        columnIndex={columnIndex}
-        tableColumn={tableColumn}
-        key={"col-" + columnIndex}
-    >
-        <code key={"col-" + columnIndex}>{tableItem.Location.text}</code>
-    </SimpleTableCell>
 }
 
 const fixedColumns = [
@@ -141,11 +130,11 @@ const sortFunctions = [
 ];
 
 export class SecretsTable extends React.Component<SecretsTableProps> {
-
-    private readonly results: ObservableArray<ListSecret> = new ObservableArray<ListSecret>([])
+    private readonly results: ObservableArray<ListSecret>
 
     constructor(props: SecretsTableProps) {
         super(props)
+
         this.results = new ObservableArray<ListSecret>(convertSecrets(props.results))
         // sort by severity desc by default
         this.results.splice(
@@ -161,8 +150,20 @@ export class SecretsTable extends React.Component<SecretsTableProps> {
         )
     }
 
-    render() {
+    componentDidUpdate(prevProps: Readonly<SecretsTableProps>, prevState, snapshot?: any): void {
+        this.results.splice(
+            0,
+            this.results.length,
+            ...sortItems<ListSecret>(
+                0,
+                SortOrder.descending,
+                sortFunctions,
+                fixedColumns,
+                convertSecrets(this.props.results)
+            ))
+    }
 
+    render() {
         const sortingBehavior = new ColumnSorting<ListSecret>(
             (
                 columnIndex: number,
@@ -181,7 +182,6 @@ export class SecretsTable extends React.Component<SecretsTableProps> {
                 )
             }
         );
-
 
         return (
             this.results.length == 0 ?
