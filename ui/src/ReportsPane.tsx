@@ -14,6 +14,7 @@ import { FILTER_CHANGE_EVENT, Filter, FilterOperatorType } from "azure-devops-ui
 import * as React from 'react';
 import { FilesystemReport } from "./FilesystemReport";
 import { ImageReport } from "./ImageReport";
+import './ReportsPane.css';
 import {
     ArtifactType,
     AssuranceReport,
@@ -164,6 +165,7 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
                                                 }}
                                                 checked={this.onlyWithIssues}
                                                 label="With Issues"
+                                                className="faded-color"
                                             />
                                             <DropdownFilterBarItem
                                                 filterItemKey="owner"
