@@ -204,6 +204,7 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
                                                             (props.currentState.owner?.length > 0 ? entry.owner.toLowerCase() === props.currentState.owner.toLowerCase() : true) &&
                                                             (props.currentState.withIssues ? entry.secretsCount > 0 : true)
                                                         ))
+                                                        ?.sort((a, b) => a.secretsCount < b.secretsCount ? 1 : -1)
                                                         ?.map((entry: SummaryEntry, index: number) => (
                                                             <Tab
                                                                 key={index}
