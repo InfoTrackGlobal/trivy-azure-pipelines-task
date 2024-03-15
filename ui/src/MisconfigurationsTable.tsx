@@ -17,7 +17,9 @@ import {compareSeverity, renderSeverity} from "./severity";
 import {ITableColumn} from "azure-devops-ui/Components/Table/Table.Props";
 
 interface MisconfigurationsTableProps {
-    results: Result[]
+    results: Result[],
+    defaultBranch: string,
+    artifactName: string
 }
 
 interface ListMisconfiguration extends ISimpleTableCell {
@@ -83,8 +85,8 @@ const fixedColumns = [
         id: "Location",
         name: "Location",
         readonly: true,
-        renderCell: renderLocation,
         width: new ObservableValue(-45),
+        renderCell: renderSimpleCell,
         sortProps: {
             ariaLabelAscending: "Sorted A to Z",
             ariaLabelDescending: "Sorted Z to A",
@@ -117,7 +119,7 @@ export class MisconfigurationsTable extends React.Component<MisconfigurationsTab
 
     constructor(props: MisconfigurationsTableProps) {
         super(props)
-        this.results = new ObservableArray<ListMisconfiguration>(convertMisconfigurations(props.results))
+        this.results = new ObservableArray<ListMisconfiguration>(convertMisconfigurations(props.results,props.defaultBranch, props.artifactName))
         // sort by severity desc by default
         this.results.splice(
             0,
@@ -179,17 +181,25 @@ export class MisconfigurationsTable extends React.Component<MisconfigurationsTab
     }
 }
 
-function convertLocation(result: Result, misconfiguration: Misconfiguration): ISimpleListCell {
-    let combined = result.Target + ":" + misconfiguration.CauseMetadata.StartLine
+function convertLocation(result: Result,misconfiguration: Misconfiguration, defaultBranch: string, artifactName: string): ISimpleListCell {
+    let combined = result.Target
+    let location = "https://github.com/InfoTrackGlobal/" + artifactName + "/blob/"+defaultBranch+"/" + result.Target  
+    if(misconfiguration.CauseMetadata.StartLine){
+        combined += ":" + misconfiguration.CauseMetadata.StartLine
+        location += "#L" + misconfiguration.CauseMetadata.StartLine
+    }
+
     if (misconfiguration.CauseMetadata.StartLine > misconfiguration.CauseMetadata.EndLine) {
         combined += "-" + misconfiguration.CauseMetadata.EndLine
     }
     return {
         text: combined,
+        href: location,
+        hrefTarget: "_blank"
     }
 }
 
-function convertMisconfigurations(results: Result[]): ListMisconfiguration[] {
+function convertMisconfigurations(results: Result[], defaultBranch: string, artifactName: string): ListMisconfiguration[] {
     const output: ListMisconfiguration[] = []
     results.forEach(result => {
         if (Object.prototype.hasOwnProperty.call(result, "Misconfigurations") && result.Misconfigurations !== null) {
@@ -204,7 +214,7 @@ function convertMisconfigurations(results: Result[]): ListMisconfiguration[] {
                         iconProps: {iconName: "NavigateExternalInline", ariaLabel: "External Link"}
                     },
                     Description: {text: misconfiguration.Description},
-                    Location: convertLocation(result, misconfiguration),
+                    Location: convertLocation(result, misconfiguration,defaultBranch,artifactName),
                 })
             })
         }

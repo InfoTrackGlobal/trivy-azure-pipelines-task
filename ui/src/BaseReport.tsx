@@ -86,13 +86,13 @@ export class BaseReport extends React.Component<BaseReportProps, BaseReportState
                 {
                     this.state.selectedTabId === "vulnerabilities" &&
                     <div className="flex-grow">
-                        <VulnerabilitiesTable results={this.props.report.Results}/>
+                        <VulnerabilitiesTable results={this.props.report.Results} />
                     </div>
                 }
                 {
                     this.state.selectedTabId === "misconfigurations" &&
                     <div className="flex-grow">
-                        <MisconfigurationsTable results={this.props.report.Results}/>
+                        <MisconfigurationsTable results={this.props.report.Results}  defaultBranch={this.props.report.DefaultBranch} artifactName={this.props.report.ArtifactName}/>
                     </div>
                 }
                 {
