@@ -165,39 +165,39 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
                                                 <FilterBar filter={this.filter} onDismissClicked={() => this.onlyWithIssues.value = false}>
                                                     <KeywordFilterBarItem filterItemKey="repository" placeholder="Repository name" />
 
-                                            <Checkbox
-                                                onChange={(_, checked) => {
-                                                    this.onlyWithIssues.value = checked
-                                                    this.filter.setFilterItemState("withIssues", {
-                                                        value: checked,
-                                                        operator: FilterOperatorType.and
-                                                    })
-                                                }}
-                                                checked={this.onlyWithIssues}
-                                                label="With Issues"
-                                                className="faded-color"
-                                            />
-                                            <DropdownFilterBarItem
-                                                filterItemKey="owner"
-                                                filter={this.filter}
-                                                items={this.props.summary.results
-                                                    .reduce((acc: string[], current) => {
-                                                        if (!acc.includes(current.owner) && current.owner !== "") {
-                                                            acc.push(current.owner)
+                                                    <Checkbox
+                                                        onChange={(_, checked) => {
+                                                            this.onlyWithIssues.value = checked
+                                                            this.filter.setFilterItemState("withIssues", {
+                                                                value: checked,
+                                                                operator: FilterOperatorType.and
+                                                            })
+                                                        }}
+                                                        checked={this.onlyWithIssues}
+                                                        label="With Issues"
+                                                        className="faded-color"
+                                                    />
+                                                    <DropdownFilterBarItem
+                                                        filterItemKey="owner"
+                                                        filter={this.filter}
+                                                        items={this.props.summary.results
+                                                            .reduce((acc: string[], current) => {
+                                                                if (!acc.includes(current.owner) && current.owner !== "") {
+                                                                    acc.push(current.owner)
+                                                                }
+                                                                return acc
+                                                            }, [])
+                                                            .map(owner => ({
+                                                                id: owner,
+                                                                key: owner,
+                                                                text: owner
+                                                            }))
                                                         }
-                                                        return acc
-                                                    }, [])
-                                                    .map(owner => ({
-                                                        id: owner,
-                                                        key: owner,
-                                                        text: owner
-                                                    }))
-                                                }
-                                                selection={this.selectionOwner}
-                                                placeholder="Owner"
-                                            />
-                                        </FilterBar>
-                                    </div>
+                                                        selection={this.selectionOwner}
+                                                        placeholder="Owner"
+                                                    />
+                                                </FilterBar>
+                                            </div>
                                         </div>
                                         <div className="flex-row" style={{ overflow: "auto" }}>
                                             <Observer currentState={this.currentState}>

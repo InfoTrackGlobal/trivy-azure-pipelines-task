@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {ObservableArray, ObservableValue} from "azure-devops-ui/Core/Observable";
+import { ObservableArray, ObservableValue } from "azure-devops-ui/Core/Observable";
 import {
     ColumnSorting,
     ISimpleTableCell,
@@ -10,15 +10,15 @@ import {
     Table,
     TableColumnLayout,
 } from "azure-devops-ui/Table";
-import {Misconfiguration, Result, Severity} from "./trivy";
-import {ISimpleListCell} from "azure-devops-ui/List";
-import {ZeroData} from "azure-devops-ui/ZeroData";
-import {compareSeverity, renderSeverity} from "./severity";
-import {ITableColumn} from "azure-devops-ui/Components/Table/Table.Props";
+import { Misconfiguration, Result, Severity } from "./trivy";
+import { ISimpleListCell } from "azure-devops-ui/List";
+import { ZeroData } from "azure-devops-ui/ZeroData";
+import { compareSeverity, renderSeverity } from "./severity";
+import { ITableColumn } from "azure-devops-ui/Components/Table/Table.Props";
 
 interface MisconfigurationsTableProps {
-    results: Result[],
-    defaultBranch: string,
+    results: Result[]
+    defaultBranch: string
     artifactName: string
 }
 
@@ -85,8 +85,8 @@ const fixedColumns = [
         id: "Location",
         name: "Location",
         readonly: true,
-        width: new ObservableValue(-45),
         renderCell: renderSimpleCell,
+        width: new ObservableValue(-45),
         sortProps: {
             ariaLabelAscending: "Sorted A to Z",
             ariaLabelDescending: "Sorted Z to A",
@@ -119,7 +119,7 @@ export class MisconfigurationsTable extends React.Component<MisconfigurationsTab
 
     constructor(props: MisconfigurationsTableProps) {
         super(props)
-        this.results = new ObservableArray<ListMisconfiguration>(convertMisconfigurations(props.results,props.defaultBranch, props.artifactName))
+        this.results = new ObservableArray<ListMisconfiguration>(convertMisconfigurations(props.results, props.defaultBranch, props.artifactName))
         // sort by severity desc by default
         this.results.splice(
             0,
@@ -181,16 +181,17 @@ export class MisconfigurationsTable extends React.Component<MisconfigurationsTab
     }
 }
 
-function convertLocation(result: Result,misconfiguration: Misconfiguration, defaultBranch: string, artifactName: string): ISimpleListCell {
+function convertLocation(result: Result, misconfiguration: Misconfiguration, defaultBranch: string, artifactName: string): ISimpleListCell {
     let combined = result.Target
-    let location = "https://github.com/InfoTrackGlobal/" + artifactName + "/blob/"+defaultBranch+"/" + result.Target  
-    if(misconfiguration.CauseMetadata.StartLine){
-        combined += ":" + misconfiguration.CauseMetadata.StartLine
-        location += "#L" + misconfiguration.CauseMetadata.StartLine
+    let location = `https://github.com/InfoTrackGlobal/${artifactName}/blob/${defaultBranch}/${result.Target}`
+
+    if (misconfiguration.CauseMetadata.StartLine) {
+        combined += `:${misconfiguration.CauseMetadata.StartLine}`
+        location += `#L${misconfiguration.CauseMetadata.StartLine}`
     }
 
     if (misconfiguration.CauseMetadata.StartLine > misconfiguration.CauseMetadata.EndLine) {
-        combined += "-" + misconfiguration.CauseMetadata.EndLine
+        combined += `-${misconfiguration.CauseMetadata.EndLine}`
     }
     return {
         text: combined,
@@ -205,16 +206,16 @@ function convertMisconfigurations(results: Result[], defaultBranch: string, arti
         if (Object.prototype.hasOwnProperty.call(result, "Misconfigurations") && result.Misconfigurations !== null) {
             result.Misconfigurations.forEach(function (misconfiguration: Misconfiguration) {
                 output.push({
-                    Severity: {text: misconfiguration.Severity},
+                    Severity: { text: misconfiguration.Severity },
                     ID: {
                         text: misconfiguration.ID.toUpperCase(),
                         href: "https://avd.aquasec.com/misconfig/" + misconfiguration.ID.toLowerCase(),
                         hrefTarget: "_blank",
                         hrefRel: "noopener",
-                        iconProps: {iconName: "NavigateExternalInline", ariaLabel: "External Link"}
+                        iconProps: { iconName: "NavigateExternalInline", ariaLabel: "External Link" }
                     },
-                    Description: {text: misconfiguration.Description},
-                    Location: convertLocation(result, misconfiguration,defaultBranch,artifactName),
+                    Description: { text: misconfiguration.Description },
+                    Location: convertLocation(result, misconfiguration, defaultBranch, artifactName),
                 })
             })
         }
