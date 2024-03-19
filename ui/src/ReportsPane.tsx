@@ -47,7 +47,7 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
     private filter: Filter;
     private currentState = new ObservableValue({} as FilterState);
     private selectionOwner = new DropdownSelection();
-    private onlyWithIssues = new ObservableValue<boolean>(false);
+    private onlyWithIssues = new ObservableValue<boolean>(true);
 
     constructor(props: ReportsPaneProps) {
         super(props)
@@ -114,7 +114,7 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
             },
             {
                 name: "Total Issues",
-                value: this.props.summary.results.reduce((previous, current) => previous += current.secretsCount, 0)
+                value: this.props.summary.results.reduce((previous, current) => previous += current.secretsCount + current.misconfigurationCount, 0)
             },
             {
                 name: "Vulnerabilities",
@@ -122,7 +122,7 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
             },
             {
                 name: "Misconfigurations",
-                value: 0
+                value: this.props.summary.results.reduce((previous, current) => previous += current.misconfigurationCount, 0)
             },
             {
                 name: "Secrets",
@@ -163,65 +163,68 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
                                                 <FilterBar filter={this.filter} onDismissClicked={() => this.onlyWithIssues.value = false}>
                                                     <KeywordFilterBarItem filterItemKey="repository" placeholder="Repository name" />
 
-                                                    <Checkbox
-                                                        onChange={(_, checked) => {
-                                                            this.onlyWithIssues.value = checked;
-                                                            this.filter.setFilterItemState("withIssues", {
-                                                                value: checked,
-                                                                operator: FilterOperatorType.and
-                                                            });
-                                                        } }
-                                                        checked={this.onlyWithIssues}
-                                                        label="With Issues"
-                                                        className="faded-color" />
-                                                    <DropdownFilterBarItem
-                                                        filterItemKey="owner"
-                                                        filter={this.filter}
-                                                        items={this.props.summary.results
-                                                            .reduce((acc: string[], current) => {
-                                                                if (!acc.includes(current.owner) && current.owner !== "") {
-                                                                    acc.push(current.owner);
-                                                                }
-                                                                return acc;
-                                                            }, [])
-                                                            .map(owner => ({
-                                                                id: owner,
-                                                                key: owner,
-                                                                text: owner
-                                                            }))}
-                                                        selection={this.selectionOwner}
-                                                        placeholder="Owner" />
-                                                </FilterBar>
-                                            </div>
-                                        </div>
-                                        <div className="flex-row" style={{ overflow: "auto" }}>
-                                                <Observer currentState={this.currentState}>
-                                                    {(props: { currentState: FilterState; }) => (
-                                                        <TabBar
-                                                            onSelectedTabChanged={this.onSelectedTabChanged}
-                                                            selectedTabId={this.state.selectedTabId}
-                                                            tabSize={TabSize.Tall}
-                                                        >
-                                                            {this.props.summary.results
-                                                                ?.filter((entry: SummaryEntry) => (
-                                                                    (props.currentState.repository?.length > 0 ? entry.repository.toLowerCase().includes(props.currentState.repository?.toLowerCase() ?? "") : true) &&
-                                                                    (props.currentState.owner?.length > 0 ? entry.owner.toLowerCase() === props.currentState.owner.toLowerCase() : true) &&
-                                                                    (props.currentState.withIssues ? entry.secretsCount > 0 : true)
-                                                                ))
-                                                                ?.sort((a, b) => a.secretsCount < b.secretsCount ? 1 : -1)
-                                                                ?.map((entry: SummaryEntry, index: number) => (
-                                                                    <Tab
-                                                                        key={index}
-                                                                        id={`${entry.repository}`}
-                                                                        name={`${entry.repository}`}
-                                                                        badgeCount={entry.secretsCount} />
-                                                                ))}
-                                                        </TabBar>
-                                                    )}
-                                                </Observer>
-                                        </div>
-                                    </>
-                                }
+                                            <Checkbox
+                                                onChange={(_, checked) => {
+                                                    this.onlyWithIssues.value = checked
+                                                    this.filter.setFilterItemState("withIssues", {
+                                                        value: checked,
+                                                        operator: FilterOperatorType.and
+                                                    })
+                                                }}
+                                                checked={this.onlyWithIssues}
+                                                label="With Issues"
+                                                className="faded-color"
+                                            />
+                                            <DropdownFilterBarItem
+                                                filterItemKey="owner"
+                                                filter={this.filter}
+                                                items={this.props.summary.results
+                                                    .reduce((acc: string[], current) => {
+                                                        if (!acc.includes(current.owner) && current.owner !== "") {
+                                                            acc.push(current.owner)
+                                                        }
+                                                        return acc
+                                                    }, [])
+                                                    .map(owner => ({
+                                                        id: owner,
+                                                        key: owner,
+                                                        text: owner
+                                                    }))
+                                                }
+                                                selection={this.selectionOwner}
+                                                placeholder="Owner"
+                                            />
+                                        </FilterBar>
+                                    </div>
+                                </div>
+                                <div className="flex-row" style={{ overflow: "auto" }}>
+                                    <Observer currentState={this.currentState}>
+                                        {(props: { currentState: FilterState }) => (
+                                            <TabBar
+                                                onSelectedTabChanged={this.onSelectedTabChanged}
+                                                selectedTabId={this.state.selectedTabId}
+                                                tabSize={TabSize.Tall}
+                                            >
+                                                {
+                                                    this.props.summary.results
+                                                        ?.filter((entry: SummaryEntry) => (
+                                                            (props.currentState.repository?.length > 0 ? entry.repository.toLowerCase().includes(props.currentState.repository?.toLowerCase() ?? "") : true) &&
+                                                            (props.currentState.owner?.length > 0 ? entry.owner.toLowerCase() === props.currentState.owner.toLowerCase() : true) &&
+                                                            (props.currentState.withIssues ? entry.secretsCount + entry.misconfigurationCount > 0 : true)
+                                                        ))
+                                                        ?.sort((a, b) => a.secretsCount + a.misconfigurationCount < b.secretsCount + b.misconfigurationCount ? 1 : -1)
+                                                        ?.map((entry: SummaryEntry, index: number) => (
+                                                            <Tab
+                                                                key={index}
+                                                                id={`${entry.repository}`}
+                                                                name={`${entry.repository}`}
+                                                                badgeCount={entry.secretsCount + entry.misconfigurationCount} />
+                                                        ))
+                                                }
+                                            </TabBar>
+                                        )}
+                                    </Observer>
+                                </div>
                                 <div className="flex-grow">
                                     <div className="tab-content">
                                         {

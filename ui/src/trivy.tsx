@@ -121,6 +121,7 @@ export interface SummaryEntry {
     repository: string
     owner: string
     secretsCount: number
+    misconfigurationCount: number
 }
 
 export interface Summary {
