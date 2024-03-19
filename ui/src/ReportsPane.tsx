@@ -96,13 +96,15 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
 
     componentDidUpdate(_prevProps: Readonly<ReportsPaneProps>, prevState: Readonly<ReportsPaneState>): void {
         if (this.props.summary.results.length > 0 && prevState.selectedTabId === "") {
-            this.setState({selectedTabId: this.props.summary.results[0].repository })
+            const worstRepository = this.props.summary.results.reduce(
+                (previous, current) => previous.secretsCount < current.secretsCount ? current : previous).repository
 
-            if (this.props.summary.results.length == 1) {
-                this.props.getReport(this.props.summary.results[0].repository).then(report => {
-                    this.setState({ report: report })
+            this.props.getReport(worstRepository).then(report => {
+                this.setState({
+                    report: report,
+                    selectedTabId: worstRepository
                 })
-            }
+            })
         }
     }
 
