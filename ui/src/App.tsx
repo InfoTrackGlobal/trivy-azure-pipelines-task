@@ -81,6 +81,7 @@ export class App extends React.Component<AppProps, AppState> {
                 recordIds.push(record.id)
                 recordStates.push(record.state)
                 attachmentRecordId = record.id
+                summaryId = record.id
             }
 
             if (record.type == "Task" && record.task !== null && record.name == "trivy_summary") {
