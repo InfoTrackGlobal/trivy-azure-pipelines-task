@@ -6,11 +6,11 @@ import {
     countReportVulnerabilities,
     Report
 } from './trivy';
-import {SecretsTable} from "./SecretsTable";
-import {VulnerabilitiesTable} from "./VulnerabilitiesTable";
-import {MisconfigurationsTable} from "./MisconfigurationsTable";
-import {Tab, TabBar, TabSize} from "azure-devops-ui/Tabs";
-import {AssuranceTable} from "./AssuranceTable";
+import { SecretsTable } from "./SecretsTable";
+import { VulnerabilitiesTable } from "./VulnerabilitiesTable";
+import { MisconfigurationsTable } from "./MisconfigurationsTable";
+import { Tab, TabBar, TabSize } from "azure-devops-ui/Tabs";
+import { AssuranceTable } from "./AssuranceTable";
 
 interface BaseReportProps {
     report: Report
@@ -34,11 +34,11 @@ export class BaseReport extends React.Component<BaseReportProps, BaseReportState
     }
 
     private onSelectedTabChanged = (newTabId: string) => {
-        this.setState({selectedTabId: newTabId});
+        this.setState({ selectedTabId: newTabId });
     };
 
     private countAssuranceIssues(assurance: AssuranceReport): number {
-        if(this.props.assurance === undefined) {
+        if (this.props.assurance === undefined) {
             return 0
         }
         if (!Object.prototype.hasOwnProperty.call(assurance, "Results")) {
@@ -55,6 +55,14 @@ export class BaseReport extends React.Component<BaseReportProps, BaseReportState
         return total
     }
 
+    componentDidUpdate(_prevProps: Readonly<BaseReportProps>, prevState: Readonly<BaseReportState>): void {
+        if (prevState.selectedTabId == "secrets") {
+            if (this.props.report.Results.reduce((acc, result) => acc + (result.Secrets ? result.Secrets.length : 0), 0) == 0) {
+                this.setState({ selectedTabId: "misconfigurations" })
+            }
+        }
+    }
+
     render() {
         return (
             <div className="flex-grow">
@@ -65,42 +73,42 @@ export class BaseReport extends React.Component<BaseReportProps, BaseReportState
                         tabSize={TabSize.Tall}
                     >
                         <Tab id="secrets" name="Secrets" key="secrets"
-                             badgeCount={countReportSecrets(this.props.report)}/>
+                            badgeCount={countReportSecrets(this.props.report)} />
                         <Tab id="vulnerabilities" name="Vulnerabilities" key="vulnerabilities"
-                             badgeCount={countReportVulnerabilities(this.props.report)}/>
+                            badgeCount={countReportVulnerabilities(this.props.report)} />
                         <Tab id="misconfigurations" name="Misconfigurations" key="misconfigurations"
-                             badgeCount={countReportMisconfigurations(this.props.report)}/>
+                            badgeCount={countReportMisconfigurations(this.props.report)} />
                         {
                             this.props.assurance !== undefined &&
-                            <Tab id="assurance" name="Assurance Issues" key="assurance" badgeCount={this.countAssuranceIssues(this.props.assurance)}/>
+                            <Tab id="assurance" name="Assurance Issues" key="assurance" badgeCount={this.countAssuranceIssues(this.props.assurance)} />
                         }
                     </TabBar>
                 </div>
                 <div className="tab-content flex-row">
-                {
-                    this.state.selectedTabId === "secrets" &&
-                    <div className="flex-grow">
-                        <SecretsTable results={this.props.report.Results} defaultBranch={this.props.report.DefaultBranch} artifactName={this.props.report.ArtifactName}/>
-                    </div>
-                }
-                {
-                    this.state.selectedTabId === "vulnerabilities" &&
-                    <div className="flex-grow">
-                        <VulnerabilitiesTable results={this.props.report.Results}/>
-                    </div>
-                }
-                {
-                    this.state.selectedTabId === "misconfigurations" &&
-                    <div className="flex-grow">
-                        <MisconfigurationsTable results={this.props.report.Results}/>
-                    </div>
-                }
-                {
-                    this.state.selectedTabId === "assurance" &&
-                    <div className="flex-grow">
-                        <AssuranceTable results={this.props.assurance.Results}/>
-                    </div>
-                }
+                    {
+                        this.state.selectedTabId === "secrets" &&
+                        <div className="flex-grow">
+                            <SecretsTable results={this.props.report.Results} defaultBranch={this.props.report.DefaultBranch} artifactName={this.props.report.ArtifactName} />
+                        </div>
+                    }
+                    {
+                        this.state.selectedTabId === "vulnerabilities" &&
+                        <div className="flex-grow">
+                            <VulnerabilitiesTable results={this.props.report.Results} />
+                        </div>
+                    }
+                    {
+                        this.state.selectedTabId === "misconfigurations" &&
+                        <div className="flex-grow">
+                            <MisconfigurationsTable results={this.props.report.Results} defaultBranch={this.props.report.DefaultBranch} artifactName={this.props.report.ArtifactName} />
+                        </div>
+                    }
+                    {
+                        this.state.selectedTabId === "assurance" &&
+                        <div className="flex-grow">
+                            <AssuranceTable results={this.props.assurance.Results} />
+                        </div>
+                    }
                 </div>
             </div>
         )

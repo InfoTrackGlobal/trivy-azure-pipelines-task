@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {ObservableArray, ObservableValue} from "azure-devops-ui/Core/Observable";
+import { ObservableArray, ObservableValue } from "azure-devops-ui/Core/Observable";
 import {
     ColumnSorting,
     ISimpleTableCell,
@@ -9,11 +9,11 @@ import {
     Table,
     TableColumnLayout,
 } from "azure-devops-ui/Table";
-import {Result, Secret, Severity} from "./trivy";
-import {ISimpleListCell} from "azure-devops-ui/List";
-import {ZeroData} from "azure-devops-ui/ZeroData";
-import {compareSeverity, renderSeverity} from "./severity";
-import {ITableColumn} from "azure-devops-ui/Components/Table/Table.Props";
+import { Result, Secret, Severity } from "./trivy";
+import { ISimpleListCell } from "azure-devops-ui/List";
+import { ZeroData } from "azure-devops-ui/ZeroData";
+import { compareSeverity, renderSeverity } from "./severity";
+import { ITableColumn } from "azure-devops-ui/Components/Table/Table.Props";
 
 interface SecretsTableProps {
     results: Result[]
@@ -26,7 +26,7 @@ interface ListSecret extends ISimpleTableCell {
     Category: ISimpleListCell
     RuleID: ISimpleListCell
     Title: ISimpleListCell
-    Location: ISimpleListCell    
+    Location: ISimpleListCell
     Match: ISimpleListCell
 }
 
@@ -138,7 +138,7 @@ export class SecretsTable extends React.Component<SecretsTableProps> {
         super(props)
 
         this.results = new ObservableArray<ListSecret>(convertSecrets(props.results, props.defaultBranch, props.artifactName))
-        
+
         // sort by severity desc by default
         this.results.splice(
             0,
@@ -153,7 +153,7 @@ export class SecretsTable extends React.Component<SecretsTableProps> {
         )
     }
 
-    componentDidUpdate(prevProps: Readonly<SecretsTableProps>, prevState, snapshot?: any): void {
+    componentDidUpdate(): void {
         this.results.splice(
             0,
             this.results.length,
@@ -212,13 +212,12 @@ export class SecretsTable extends React.Component<SecretsTableProps> {
 }
 
 function convertLocation(result: Result, secret: Secret, defaultBranch: string, artifactName: string): ISimpleListCell {
-    let combined = result.Target + ":" + secret.StartLine
+    let combined = `${result.Target}:${secret.StartLine}`
 
-    //https://github.com/{OrgName}/{repoName}/blob/{branch}/{target}#L{StartLine}
-    const location = "https://github.com/InfoTrackGlobal/" + artifactName + "/blob/"+defaultBranch+"/" + result.Target + "#L" + secret.StartLine
-   
+    const location = `https://github.com/InfoTrackGlobal/${artifactName}/blob/${defaultBranch}/${result.Target}#L${secret.StartLine}`
+
     if (secret.StartLine > secret.EndLine) {
-        combined += "-" + secret.EndLine
+        combined += `-${secret.EndLine}`
     }
     return {
         text: combined,
