@@ -94,7 +94,7 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
         return assuranceReport
     }
 
-    componentDidUpdate(prevProps: Readonly<ReportsPaneProps>, prevState: Readonly<ReportsPaneState>): void {
+    componentDidUpdate(_prevProps: Readonly<ReportsPaneProps>, prevState: Readonly<ReportsPaneState>): void {
         if (this.props.summary.results.length > 0 && prevState.selectedTabId === "") {
             this.setState({selectedTabId: this.props.summary.results[0].repository })
 
@@ -143,21 +143,21 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
                                 logs for more information.
                             </MessageCard> :
                             <div className="flex-grow">
-                                <div className="flex-row" style={{ paddingBottom: 40 }}>
-                                    <Card className="flex-grow">
-                                        <div className="flex-row" style={{ flexWrap: "wrap" }}>
-                                            {stats.map((items, index) => (
-                                                <div className="flex-column" style={{ minWidth: "120px" }} key={index}>
-                                                    <div className="body-m secondary-text">{items.name}</div>
-                                                    <div className="body-m primary-text">{items.value}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </Card>
-                                </div>
                                 {
                                     this.props.summary.results?.length > 1 &&
                                     <>
+                                        <div className="flex-row" style={{ paddingBottom: 40 }}>
+                                            <Card className="flex-grow">
+                                                <div className="flex-row" style={{ flexWrap: "wrap" }}>
+                                                    {stats.map((items, index) => (
+                                                        <div className="flex-column" style={{ minWidth: "120px" }} key={index}>
+                                                            <div className="body-m secondary-text">{items.name}</div>
+                                                            <div className="body-m primary-text">{items.value}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </Card>
+                                        </div>
                                         <div className="flex-row" style={{ paddingBottom: 20 }}>
                                             <div className="flex-grow">
                                                 <FilterBar filter={this.filter} onDismissClicked={() => this.onlyWithIssues.value = false}>
@@ -196,35 +196,37 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
                                             />
                                         </FilterBar>
                                     </div>
-                                </div>
-                                <div className="flex-row" style={{ overflow: "auto" }}>
-                                    <Observer currentState={this.currentState}>
-                                        {(props: { currentState: FilterState }) => (
-                                            <TabBar
-                                                onSelectedTabChanged={this.onSelectedTabChanged}
-                                                selectedTabId={this.state.selectedTabId}
-                                                tabSize={TabSize.Tall}
-                                            >
-                                                {
-                                                    this.props.summary.results
-                                                        ?.filter((entry: SummaryEntry) => (
-                                                            (props.currentState.repository?.length > 0 ? entry.repository.toLowerCase().includes(props.currentState.repository?.toLowerCase() ?? "") : true) &&
-                                                            (props.currentState.owner?.length > 0 ? entry.owner.toLowerCase() === props.currentState.owner.toLowerCase() : true) &&
-                                                            (props.currentState.withIssues ? entry.secretsCount + entry.misconfigurationCount > 0 : true)
-                                                        ))
-                                                        ?.sort((a, b) => a.secretsCount + a.misconfigurationCount < b.secretsCount + b.misconfigurationCount ? 1 : -1)
-                                                        ?.map((entry: SummaryEntry, index: number) => (
-                                                            <Tab
-                                                                key={index}
-                                                                id={`${entry.repository}`}
-                                                                name={`${entry.repository}`}
-                                                                badgeCount={entry.secretsCount + entry.misconfigurationCount} />
-                                                        ))
-                                                }
-                                            </TabBar>
-                                        )}
-                                    </Observer>
-                                </div>
+                                        </div>
+                                        <div className="flex-row" style={{ overflow: "auto" }}>
+                                            <Observer currentState={this.currentState}>
+                                                {(props: { currentState: FilterState }) => (
+                                                    <TabBar
+                                                        onSelectedTabChanged={this.onSelectedTabChanged}
+                                                        selectedTabId={this.state.selectedTabId}
+                                                        tabSize={TabSize.Tall}
+                                                    >
+                                                        {
+                                                            this.props.summary.results
+                                                                ?.filter((entry: SummaryEntry) => (
+                                                                    (props.currentState.repository?.length > 0 ? entry.repository.toLowerCase().includes(props.currentState.repository?.toLowerCase() ?? "") : true) &&
+                                                                    (props.currentState.owner?.length > 0 ? entry.owner.toLowerCase() === props.currentState.owner.toLowerCase() : true) &&
+                                                                    (props.currentState.withIssues ? entry.secretsCount + entry.misconfigurationCount > 0 : true)
+                                                                ))
+                                                                ?.sort((a, b) => a.secretsCount + a.misconfigurationCount < b.secretsCount + b.misconfigurationCount ? 1 : -1)
+                                                                ?.map((entry: SummaryEntry, index: number) => (
+                                                                    <Tab
+                                                                        key={index}
+                                                                        id={`${entry.repository}`}
+                                                                        name={`${entry.repository}`}
+                                                                        badgeCount={entry.secretsCount + entry.misconfigurationCount} />
+                                                                ))
+                                                        }
+                                                    </TabBar>
+                                                )}
+                                            </Observer>
+                                        </div>
+                                    </>
+                                }
                                 <div className="flex-grow">
                                     <div className="tab-content">
                                         {
