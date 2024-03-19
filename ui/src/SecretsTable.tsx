@@ -153,7 +153,7 @@ export class SecretsTable extends React.Component<SecretsTableProps> {
         )
     }
 
-    componentDidUpdate(prevProps: Readonly<SecretsTableProps>, prevState, snapshot?: any): void {
+    componentDidUpdate(): void {
         this.results.splice(
             0,
             this.results.length,
