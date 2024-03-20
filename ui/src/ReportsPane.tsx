@@ -116,11 +116,11 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
             },
             {
                 name: "Total Issues",
-                value: this.props.summary.results.reduce((previous, current) => previous += current.secretsCount + current.misconfigurationCount, 0)
+                value: this.props.summary.results.reduce((previous, current) => previous += current.secretsCount + current.misconfigurationCount + current.vulnerabilityCount, 0)
             },
             {
                 name: "Vulnerabilities",
-                value: 0
+                value: this.props.summary.results.reduce((previous, current) => previous += current.vulnerabilityCount, 0)
             },
             {
                 name: "Misconfigurations",
@@ -212,15 +212,16 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
                                                                 ?.filter((entry: SummaryEntry) => (
                                                                     (props.currentState.repository?.length > 0 ? entry.repository.toLowerCase().includes(props.currentState.repository?.toLowerCase() ?? "") : true) &&
                                                                     (props.currentState.owner?.length > 0 ? entry.owner.toLowerCase() === props.currentState.owner.toLowerCase() : true) &&
-                                                                    (props.currentState.withIssues ? entry.secretsCount + entry.misconfigurationCount > 0 : true)
+                                                                    (props.currentState.withIssues ? entry.secretsCount + entry.misconfigurationCount + entry.vulnerabilityCount > 0 : true)
                                                                 ))
-                                                                ?.sort((a, b) => a.secretsCount + a.misconfigurationCount < b.secretsCount + b.misconfigurationCount ? 1 : -1)
+                                                                ?.sort((a, b) => a.secretsCount + a.misconfigurationCount + a.vulnerabilityCount < b.secretsCount + b.misconfigurationCount + b.vulnerabilityCount ? 1 : -1)
                                                                 ?.map((entry: SummaryEntry, index: number) => (
                                                                     <Tab
                                                                         key={index}
                                                                         id={`${entry.repository}`}
                                                                         name={`${entry.repository}`}
-                                                                        badgeCount={entry.secretsCount + entry.misconfigurationCount} />
+                                                                        badgeCount={entry.secretsCount + entry.misconfigurationCount + entry.vulnerabilityCount} 
+                                                                    />
                                                                 ))
                                                         }
                                                     </TabBar>
