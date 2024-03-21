@@ -202,12 +202,10 @@ export class VulnerabilitiesTable extends React.Component<VulnerabilitiesTablePr
 }
 
 function convertLocation(result: Result, defaultBranch: string, artifactName: string): ISimpleListCell {
-    let combined = result.Target
+    const location = "https://github.com/InfoTrackGlobal/" + artifactName + "/blob/" + defaultBranch + "/" + result.Target
 
-    const location = "https://github.com/InfoTrackGlobal/" + artifactName + "/blob/"+defaultBranch+"/" + result.Target
-       
     return {
-        text: combined,
+        text: result.Target,
         href: location,
         hrefTarget: "_blank"
     }
