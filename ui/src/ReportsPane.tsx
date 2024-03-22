@@ -119,10 +119,6 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
                 value: this.props.summary.results.reduce((previous, current) => previous += current.secretsCount + current.misconfigurationCount + current.vulnerabilityCount, 0)
             },
             {
-                name: "Vulnerabilities",
-                value: this.props.summary.results.reduce((previous, current) => previous += current.vulnerabilityCount, 0)
-            },
-            {
                 name: "Misconfigurations",
                 value: this.props.summary.results.reduce((previous, current) => previous += current.misconfigurationCount, 0)
             },
