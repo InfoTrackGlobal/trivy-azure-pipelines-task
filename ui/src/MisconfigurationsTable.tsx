@@ -4,7 +4,6 @@ import {
     ColumnSorting,
     ISimpleTableCell,
     renderSimpleCell,
-    SimpleTableCell,
     sortItems,
     SortOrder,
     Table,
@@ -23,24 +22,15 @@ interface MisconfigurationsTableProps {
 }
 
 interface ListMisconfiguration extends ISimpleTableCell {
-    Severity: ISimpleListCell,
-    ID: ISimpleListCell,
+    Severity: ISimpleListCell
+    ID: ISimpleListCell
+    Documentation: ISimpleListCell
     Description: ISimpleListCell
     Location: ISimpleListCell
 }
 
 function renderMisconfigurationSeverity(rowIndex: number, columnIndex: number, tableColumn: ITableColumn<ListMisconfiguration>, tableItem: ListMisconfiguration): JSX.Element {
     return renderSeverity(rowIndex, columnIndex, tableColumn, tableItem.Severity.text as Severity)
-}
-
-function renderLocation(rowIndex: number, columnIndex: number, tableColumn: ITableColumn<ListMisconfiguration>, tableItem: ListMisconfiguration): JSX.Element {
-    return <SimpleTableCell
-        columnIndex={columnIndex}
-        tableColumn={tableColumn}
-        key={"col-" + columnIndex}
-    >
-        <code key={"col-" + columnIndex}>{tableItem.Location.text}</code>
-    </SimpleTableCell>
 }
 
 const fixedColumns = [
@@ -62,7 +52,19 @@ const fixedColumns = [
         name: "ID",
         readonly: true,
         renderCell: renderSimpleCell,
-        width: new ObservableValue(-10),
+        width: new ObservableValue(-5),
+        sortProps: {
+            ariaLabelAscending: "Sorted A to Z",
+            ariaLabelDescending: "Sorted Z to A",
+        },
+    },
+    {
+        columnLayout: TableColumnLayout.singleLine,
+        id: "Documentation",
+        name: "How to Fix",
+        readonly: true,
+        renderCell: renderSimpleCell,
+        width: new ObservableValue(-5),
         sortProps: {
             ariaLabelAscending: "Sorted A to Z",
             ariaLabelDescending: "Sorted Z to A",
@@ -210,6 +212,13 @@ function convertMisconfigurations(results: Result[], defaultBranch: string, arti
                     ID: {
                         text: misconfiguration.ID.toUpperCase(),
                         href: "https://avd.aquasec.com/misconfig/" + misconfiguration.ID.toLowerCase(),
+                        hrefTarget: "_blank",
+                        hrefRel: "noopener",
+                        iconProps: { iconName: "NavigateExternalInline", ariaLabel: "External Link" }
+                    },
+                    Documentation: {
+                        text: `ITK-${misconfiguration.ID.toUpperCase()}`,
+                        href: `https://github.com/InfoTrackGlobal/Documentation/blob/master/Security/Trivy/Misconfigurations/${misconfiguration.ID.toLowerCase()}.md`,
                         hrefTarget: "_blank",
                         hrefRel: "noopener",
                         iconProps: { iconName: "NavigateExternalInline", ariaLabel: "External Link" }
