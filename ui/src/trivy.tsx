@@ -122,6 +122,7 @@ export interface SummaryEntry {
     owner: string
     secretsCount: number
     misconfigurationCount: number
+    vulnerabilityCount: number
 }
 
 export interface Summary {

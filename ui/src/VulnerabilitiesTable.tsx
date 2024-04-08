@@ -16,7 +16,9 @@ import {compareSeverity, renderSeverity} from "./severity";
 import {ITableColumn} from "azure-devops-ui/Components/Table/Table.Props";
 
 interface VulnerabilitiesTableProps {
-    results: Result[]
+    results: Result[],
+    defaultBranch: string,
+    artifactName: string
 }
 
 interface ListVulnerability extends ISimpleTableCell {
@@ -25,6 +27,7 @@ interface ListVulnerability extends ISimpleTableCell {
     PkgName: ISimpleListCell
     Title: ISimpleListCell
     FixAvailable: ISimpleListCell
+    Location: ISimpleListCell
 }
 
 function renderVulnerabilitySeverity(rowIndex: number, columnIndex: number, tableColumn: ITableColumn<ListVulnerability>, tableItem: ListVulnerability): JSX.Element {
@@ -74,7 +77,19 @@ const fixedColumns = [
         name: "Title",
         readonly: true,
         renderCell: renderSimpleCell,
-        width: new ObservableValue(-60),
+        width: new ObservableValue(-40),
+        sortProps: {
+            ariaLabelAscending: "Sorted A to Z",
+            ariaLabelDescending: "Sorted Z to A",
+        },
+    },
+    {
+        columnLayout: TableColumnLayout.singleLine,
+        id: "Location",
+        name: "Location",
+        readonly: true,
+        renderCell: renderSimpleCell,
+        width: new ObservableValue(-20),
         sortProps: {
             ariaLabelAscending: "Sorted A to Z",
             ariaLabelDescending: "Sorted Z to A",
@@ -124,7 +139,7 @@ export class VulnerabilitiesTable extends React.Component<VulnerabilitiesTablePr
 
     constructor(props: VulnerabilitiesTableProps) {
         super(props)
-        this.results = new ObservableArray<ListVulnerability>(convertVulnerabilities(props.results))
+        this.results = new ObservableArray<ListVulnerability>(convertVulnerabilities(props.defaultBranch, props.artifactName, props.results))
         // sort by severity desc by default
         this.results.splice(
             0,
@@ -186,7 +201,17 @@ export class VulnerabilitiesTable extends React.Component<VulnerabilitiesTablePr
     }
 }
 
-function convertVulnerabilities(results?: Result[]): ListVulnerability[] {
+function convertLocation(result: Result, defaultBranch: string, artifactName: string): ISimpleListCell {
+    const location = "https://github.com/InfoTrackGlobal/" + artifactName + "/blob/" + defaultBranch + "/" + result.Target
+
+    return {
+        text: result.Target,
+        href: location,
+        hrefTarget: "_blank"
+    }
+}
+
+function convertVulnerabilities(defaultBranch: string, artifactName: string, results?: Result[]): ListVulnerability[] {
     const output: ListVulnerability[] = []
     results?.forEach(result => {
         if (Object.prototype.hasOwnProperty.call(result, "Vulnerabilities") && result.Vulnerabilities !== null) {
@@ -203,7 +228,7 @@ function convertVulnerabilities(results?: Result[]): ListVulnerability[] {
                     PkgName: {text: vulnerability.PkgName},
                     Title: {text: vulnerability.Title},
                     FixAvailable: {text: vulnerability.FixedVersion ? "Yes" : "No"},
-
+                    Location: convertLocation(result, defaultBranch, artifactName),
                 })
             })
         }
