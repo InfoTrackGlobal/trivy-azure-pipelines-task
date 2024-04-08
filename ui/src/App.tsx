@@ -111,7 +111,7 @@ export class App extends React.Component<AppProps, AppState> {
         this.setState({ status: worstState })
 
         const summaryAttachments = await this.buildClient.getAttachments(this.projectId, build.id, "JSON_SUMMARY")
-        if (summaryId === "" || summaryAttachments.length !== 1) {
+        if (summaryId === "" || summaryAttachments.length < 1) {
             this.setState({ error: "No summary found: cannot load results. Did Trivy run properly?" })
             return
         }
