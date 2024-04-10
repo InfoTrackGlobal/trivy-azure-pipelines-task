@@ -34,14 +34,19 @@ function renderSecretSeverity(rowIndex: number, columnIndex: number, tableColumn
     return renderSeverity(rowIndex, columnIndex, tableColumn, tableItem.Severity.text as Severity)
 }
 
-const fixedColumns = [
+function onSize(event: MouseEvent, index: number, width: number) {
+    (columns[index].width as ObservableValue<number>).value = width;
+}
+
+const columns = [
     {
         columnLayout: TableColumnLayout.singleLine,
         id: "Severity",
         name: "Severity",
         readonly: true,
         renderCell: renderSecretSeverity,
-        width: 120,
+        onSize: onSize,
+        width: new ObservableValue(-10),
         sortProps: {
             ariaLabelAscending: "Sorted by severity ascending",
             ariaLabelDescending: "Sorted by severity descending",
@@ -53,6 +58,7 @@ const fixedColumns = [
         name: "Category",
         readonly: true,
         renderCell: renderSimpleCell,
+        onSize: onSize,
         width: new ObservableValue(-10),
         sortProps: {
             ariaLabelAscending: "Sorted A to Z",
@@ -65,6 +71,7 @@ const fixedColumns = [
         name: "Rule ID",
         readonly: true,
         renderCell: renderSimpleCell,
+        onSize: onSize,
         width: new ObservableValue(-10),
         sortProps: {
             ariaLabelAscending: "Sorted A to Z",
@@ -77,6 +84,7 @@ const fixedColumns = [
         name: "Title",
         readonly: true,
         renderCell: renderSimpleCell,
+        onSize: onSize,
         width: new ObservableValue(-20),
         sortProps: {
             ariaLabelAscending: "Sorted A to Z",
@@ -89,6 +97,7 @@ const fixedColumns = [
         name: "Location",
         readonly: true,
         renderCell: renderSimpleCell,
+        onSize: onSize,
         width: new ObservableValue(-35),
         sortProps: {
             ariaLabelAscending: "Sorted A to Z",
@@ -147,7 +156,7 @@ export class SecretsTable extends React.Component<SecretsTableProps> {
                 0,
                 SortOrder.descending,
                 sortFunctions,
-                fixedColumns,
+                columns,
                 this.results.value,
             )
         )
@@ -161,7 +170,7 @@ export class SecretsTable extends React.Component<SecretsTableProps> {
                 0,
                 SortOrder.descending,
                 sortFunctions,
-                fixedColumns,
+                columns,
                 convertSecrets(this.props.results, this.props.defaultBranch, this.props.artifactName)
             ))
     }
@@ -179,7 +188,7 @@ export class SecretsTable extends React.Component<SecretsTableProps> {
                         columnIndex,
                         proposedSortOrder,
                         sortFunctions,
-                        fixedColumns,
+                        columns,
                         this.results.value,
                     )
                 )
@@ -203,7 +212,7 @@ export class SecretsTable extends React.Component<SecretsTableProps> {
                     ariaLabel="Secrets Table"
                     role="table"
                     behaviors={[sortingBehavior]}
-                    columns={fixedColumns}
+                    columns={columns}
                     itemProvider={this.results}
                     containerClassName="h-scroll-auto"
                 />

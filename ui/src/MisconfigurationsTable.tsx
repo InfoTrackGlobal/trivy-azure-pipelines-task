@@ -33,14 +33,19 @@ function renderMisconfigurationSeverity(rowIndex: number, columnIndex: number, t
     return renderSeverity(rowIndex, columnIndex, tableColumn, tableItem.Severity.text as Severity)
 }
 
-const fixedColumns = [
+function onSize(event: MouseEvent, index: number, width: number) {
+    (columns[index].width as ObservableValue<number>).value = width;
+}
+
+const columns = [
     {
         columnLayout: TableColumnLayout.singleLine,
         id: "Severity",
         name: "Severity",
         readonly: true,
         renderCell: renderMisconfigurationSeverity,
-        width: 120,
+        onSize: onSize,
+        width: new ObservableValue(-10),
         sortProps: {
             ariaLabelAscending: "Sorted by severity ascending",
             ariaLabelDescending: "Sorted by severity descending",
@@ -52,7 +57,8 @@ const fixedColumns = [
         name: "ID",
         readonly: true,
         renderCell: renderSimpleCell,
-        width: new ObservableValue(-5),
+        onSize: onSize,
+        width: new ObservableValue(-10),
         sortProps: {
             ariaLabelAscending: "Sorted A to Z",
             ariaLabelDescending: "Sorted Z to A",
@@ -64,7 +70,8 @@ const fixedColumns = [
         name: "How to Fix",
         readonly: true,
         renderCell: renderSimpleCell,
-        width: new ObservableValue(-5),
+        onSize: onSize,
+        width: new ObservableValue(-10),
         sortProps: {
             ariaLabelAscending: "Sorted A to Z",
             ariaLabelDescending: "Sorted Z to A",
@@ -76,6 +83,7 @@ const fixedColumns = [
         name: "Description",
         readonly: true,
         renderCell: renderSimpleCell,
+        onSize: onSize,
         width: new ObservableValue(-45),
         sortProps: {
             ariaLabelAscending: "Sorted A to Z",
@@ -130,7 +138,7 @@ export class MisconfigurationsTable extends React.Component<MisconfigurationsTab
                 0,
                 SortOrder.descending,
                 sortFunctions,
-                fixedColumns,
+                columns,
                 this.results.value,
             )
         )
@@ -150,7 +158,7 @@ export class MisconfigurationsTable extends React.Component<MisconfigurationsTab
                         columnIndex,
                         proposedSortOrder,
                         sortFunctions,
-                        fixedColumns,
+                        columns,
                         this.results.value,
                     )
                 )
@@ -175,7 +183,7 @@ export class MisconfigurationsTable extends React.Component<MisconfigurationsTab
                     ariaLabel="Misconfigurations Table"
                     role="table"
                     behaviors={[sortingBehavior]}
-                    columns={fixedColumns}
+                    columns={columns}
                     itemProvider={this.results}
                     containerClassName="h-scroll-auto"
                 />
