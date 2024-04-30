@@ -30,6 +30,7 @@ export class ReportStats extends React.Component<ReportStatsProps> {
             {
                 name: "Target",
                 value: this.props.report.ArtifactName,
+                width: '220px'
             },
             {
                 name: "Total Issues",
@@ -52,7 +53,7 @@ export class ReportStats extends React.Component<ReportStatsProps> {
                 <Card className="flex-grow">
                     <div className="flex-row" style={{flexWrap: "wrap"}}>
                         {stats.map((items, index) => (
-                            <div className="flex-column" style={{minWidth: "120px"}} key={index}>
+                            <div className="flex-column" style={{minWidth: "120px", width: items.width}} key={index}>
                                 <div className="body-m secondary-text">{items.name}</div>
                                 <div className="body-m primary-text">{items.value}</div>
                             </div>

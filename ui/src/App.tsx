@@ -77,7 +77,7 @@ export class App extends React.Component<AppProps, AppState> {
         let attachmentRecordId = ""
 
         timeline.records.forEach(function (record: TimelineRecord) {
-            if (record.type == "Task" && record.task !== null && record.name == "trivy") {
+            if (record.type == "Task" && record.task !== null && record.name.startsWith("trivy")) {
                 recordIds.push(record.id)
                 recordStates.push(record.state)
                 attachmentRecordId = record.id
