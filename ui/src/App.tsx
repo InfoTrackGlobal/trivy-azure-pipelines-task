@@ -232,10 +232,12 @@ export class App extends React.Component<AppProps, AppState> {
                             "JSON_RESULT",
                             attachment.name,
                         )
-                        const report = this.decode<Report>(buffer)
-                        this.setState(prevState => ({
-                            reports: [...prevState.reports, report]
-                        }))
+                        const currentReport = this.decode<Report>(buffer)
+                        if (!this.state.reports.some(report=>report.ArtifactName==currentReport.ArtifactName)) {
+                            this.setState(prevState => ({
+                                reports: [...prevState.reports, currentReport]
+                            }))
+                        }
                         
                     }catch{
                         console.log("Failed to decode results attachment")
