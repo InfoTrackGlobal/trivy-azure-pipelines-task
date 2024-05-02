@@ -57,8 +57,10 @@ export class BaseReport extends React.Component<BaseReportProps, BaseReportState
 
     componentDidUpdate(_prevProps: Readonly<BaseReportProps>, prevState: Readonly<BaseReportState>): void {
         if (prevState.selectedTabId == "secrets") {
-            if (this.props.report.Results.reduce((acc, result) => acc + (result.Secrets ? result.Secrets.length : 0), 0) == 0) {
-                this.setState({ selectedTabId: "misconfigurations" })
+            if (this.props.report.Results) {
+                if (this.props.report.Results.reduce((acc, result) => acc + (result.Secrets ? result.Secrets.length : 0), 0) == 0) {
+                    this.setState({ selectedTabId: "misconfigurations" })
+                }
             }
         }
     }

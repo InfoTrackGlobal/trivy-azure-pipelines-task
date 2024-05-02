@@ -25,6 +25,7 @@ type AppState = {
     attachmentTimelineId: string
     buildId: number
     projectId: string
+    recordIds: string[]
 }
 
 interface AppProps {
@@ -52,6 +53,7 @@ export class App extends React.Component<AppProps, AppState> {
             attachmentTimelineId: "",
             buildId: 0,
             projectId: "",
+            recordIds: []
         }
 
         this.handleGetReport = this.handleGetReport.bind(this);
@@ -81,7 +83,6 @@ export class App extends React.Component<AppProps, AppState> {
                 recordIds.push(record.id)
                 recordStates.push(record.state)
                 attachmentRecordId = record.id
-                summaryId = record.id
             }
 
             if (record.type == "Task" && record.task !== null && record.name == "trivy_summary") {
@@ -94,7 +95,7 @@ export class App extends React.Component<AppProps, AppState> {
             return
         }
 
-        this.setState({ attachmentRecordId: attachmentRecordId, attachmentTimelineId: timeline.id })
+        this.setState({ attachmentRecordId: attachmentRecordId, attachmentTimelineId: timeline.id, recordIds: recordIds })
 
         let worstState: TimelineRecordState = 999
         recordStates.forEach(function (state: TimelineRecordState) {
@@ -191,28 +192,59 @@ export class App extends React.Component<AppProps, AppState> {
     }
 
     async handleGetReport(name: string): Promise<Report | undefined> {
-        const report = this.state.reports.find(r => r.ArtifactName === name)
-        if (report) {
-            return report
+        if (this.state.summary.results.length > 1) {
+            const report = this.state.reports.find(r => r.ArtifactName === name)
+            if (report) {
+                return report
+            }
+
+            try {
+                const buffer = await this.buildClient.getAttachment(
+                    this.state.projectId,
+                    this.state.buildId,
+                    this.state.attachmentTimelineId,
+                    this.state.attachmentRecordId,
+                    "JSON_RESULT",
+                    `trivy-${name}`,
+                )
+                const report = this.decode<Report>(buffer)
+                this.setState({ reports: [...this.state.reports, report] })
+
+                return report
+            } catch (e) {
+                console.log("Failed to decode results attachment")
+            }
         }
+        else {
+            const attachments = await this.buildClient.getAttachments(this.state.projectId, this.state.buildId, "JSON_RESULT")
+            if (attachments.length === 0) {
+                this.setState({error: "No attachments found: cannot load results. Did Trivy run properly?"})
+                return
+            }
+            for ( const attachment of attachments) {
+                for (const recordId of this.state.recordIds) {
+                    try {
+                        const buffer = await this.buildClient.getAttachment(
+                            this.state.projectId,
+                            this.state.buildId,
+                            this.state.attachmentTimelineId,
+                            recordId,
+                            "JSON_RESULT",
+                            attachment.name,
+                        )
+                        const report = this.decode<Report>(buffer)
+                        this.setState(prevState => ({
+                            reports: [...prevState.reports, report]
+                        }))
+                        
+                    }catch{
+                        console.log("Failed to decode results attachment")
+                    }
+                }
+            }
 
-        try {
-            const buffer = await this.buildClient.getAttachment(
-                this.state.projectId,
-                this.state.buildId,
-                this.state.attachmentTimelineId,
-                this.state.attachmentRecordId,
-                "JSON_RESULT",
-                `trivy-${name}`,
-            )
-            const report = this.decode<Report>(buffer)
-            this.setState({ reports: [...this.state.reports, report] })
-
-            return report
-        } catch (e) {
-            console.log("Failed to decode results attachment")
+            return this.state.reports
         }
-
         return undefined
     }
 

@@ -234,9 +234,9 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
                                     <div className="tab-content">
                                         {
                                             this.state.report ?
-                                                this.state.report.ArtifactType == ArtifactType.Image ?
-                                                    <ImageReport report={this.state.report} assurance={this.getAssuranceReport()} /> :
-                                                    <FilesystemReport report={this.state.report} assurance={this.getAssuranceReport()} />
+                                                this.state.report[0].ArtifactType == ArtifactType.Image ?
+                                                    <ImageReport report={this.state.report[0]} assurance={this.getAssuranceReport()} /> :
+                                                    <FilesystemReport report={this.state.report[0]} assurance={this.getAssuranceReport()} />
                                                 : <div></div>
                                         }
                                     </div>
