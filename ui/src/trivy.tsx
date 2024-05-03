@@ -156,8 +156,14 @@ export function getReportTitle(report: Report): string {
             }
             return "Filesystem: " + report.ArtifactName
         case ArtifactType.Image:
-            return "Image: " + report.ArtifactName
+            return "Image: " + getImageName(report.ArtifactName)
     }
+}
+
+export function getImageName(image: string): string {
+    return image.lastIndexOf("/") > 0 ?
+        image.substring(image.lastIndexOf("/") + 1)
+        : image
 }
 
 export function countReportIssues(report: Report): number {

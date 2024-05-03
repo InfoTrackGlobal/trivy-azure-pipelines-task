@@ -9,16 +9,14 @@ import {
     Table,
     TableColumnLayout,
 } from "azure-devops-ui/Table";
-import {Result, Severity, Vulnerability} from "./trivy";
+import {Result, Severity, Vulnerability, getImageName} from "./trivy";
 import {ISimpleListCell} from "azure-devops-ui/List";
 import {ZeroData} from "azure-devops-ui/ZeroData";
 import {compareSeverity, renderSeverity} from "./severity";
 import {ITableColumn} from "azure-devops-ui/Components/Table/Table.Props";
 
 interface VulnerabilitiesTableProps {
-    results: Result[],
-    defaultBranch: string,
-    artifactName: string
+    results: Result[]
 }
 
 interface ListVulnerability extends ISimpleTableCell {
@@ -139,7 +137,7 @@ export class VulnerabilitiesTable extends React.Component<VulnerabilitiesTablePr
 
     constructor(props: VulnerabilitiesTableProps) {
         super(props)
-        this.results = new ObservableArray<ListVulnerability>(convertVulnerabilities(props.defaultBranch, props.artifactName, props.results))
+        this.results = new ObservableArray<ListVulnerability>(convertVulnerabilities(props.results))
         // sort by severity desc by default
         this.results.splice(
             0,
@@ -175,7 +173,6 @@ export class VulnerabilitiesTable extends React.Component<VulnerabilitiesTablePr
             }
         );
 
-
         return (
             this.results.length == 0 ?
                 <ZeroData
@@ -201,17 +198,7 @@ export class VulnerabilitiesTable extends React.Component<VulnerabilitiesTablePr
     }
 }
 
-function convertLocation(result: Result, defaultBranch: string, artifactName: string): ISimpleListCell {
-    const location = "https://github.com/InfoTrackGlobal/" + artifactName + "/blob/" + defaultBranch + "/" + result.Target
-
-    return {
-        text: result.Target,
-        href: location,
-        hrefTarget: "_blank"
-    }
-}
-
-function convertVulnerabilities(defaultBranch: string, artifactName: string, results?: Result[]): ListVulnerability[] {
+function convertVulnerabilities(results?: Result[]): ListVulnerability[] {
     const output: ListVulnerability[] = []
     results?.forEach(result => {
         if (Object.prototype.hasOwnProperty.call(result, "Vulnerabilities") && result.Vulnerabilities !== null) {
@@ -228,7 +215,7 @@ function convertVulnerabilities(defaultBranch: string, artifactName: string, res
                     PkgName: {text: vulnerability.PkgName},
                     Title: {text: vulnerability.Title},
                     FixAvailable: {text: vulnerability.FixedVersion ? "Yes" : "No"},
-                    Location: convertLocation(result, defaultBranch, artifactName),
+                    Location: { text: getImageName(result.Target) }
                 })
             })
         }

@@ -39,7 +39,7 @@ export class App extends React.Component<AppProps, AppState> {
     private buildId: number;
     public props: AppProps;
 
-    constructor(props) {
+    constructor(props: Readonly<AppProps>) {
         super(props)
 
         this.state = {
@@ -56,7 +56,7 @@ export class App extends React.Component<AppProps, AppState> {
             recordIds: []
         }
 
-        this.handleGetReport = this.handleGetReport.bind(this);
+        this.handleGetReports = this.handleGetReports.bind(this);
     }
 
     async check() {
@@ -79,18 +79,19 @@ export class App extends React.Component<AppProps, AppState> {
         let attachmentRecordId = ""
 
         timeline.records.forEach(function (record: TimelineRecord) {
-            if (record.type == "Task" && record.task !== null && record.name.startsWith("trivy")) {
+            if (record.type == "Task" && record.task !== null && record.name == "trivy_summary") {
+                summaryId = record.id
+            }
+
+            else if (record.type == "Task" && record.task !== null && record.name.startsWith("trivy")) {
                 recordIds.push(record.id)
                 recordStates.push(record.state)
                 attachmentRecordId = record.id
             }
-
-            if (record.type == "Task" && record.task !== null && record.name == "trivy_summary") {
-                summaryId = record.id
-            }
         })
 
         if (recordIds.length === 0) {
+            this.setState({ status: TimelineRecordState.Pending })
             setTimeout(this.check.bind(this), this.props.checkInterval)
             return
         }
@@ -191,11 +192,11 @@ export class App extends React.Component<AppProps, AppState> {
         return JSON.parse(output);
     }
 
-    async handleGetReport(name: string): Promise<Report | undefined> {
+    async handleGetReports(name: string): Promise<Report[] | undefined> {
         if (this.state.summary.results.length > 1) {
             const report = this.state.reports.find(r => r.ArtifactName === name)
             if (report) {
-                return report
+                return [report]
             }
 
             try {
@@ -210,7 +211,7 @@ export class App extends React.Component<AppProps, AppState> {
                 const report = this.decode<Report>(buffer)
                 this.setState({ reports: [...this.state.reports, report] })
 
-                return report
+                return [report]
             } catch (e) {
                 console.log("Failed to decode results attachment")
             }
@@ -222,38 +223,40 @@ export class App extends React.Component<AppProps, AppState> {
                 return
             }
             for ( const attachment of attachments) {
-                for (const recordId of this.state.recordIds) {
-                    try {
-                        const buffer = await this.buildClient.getAttachment(
-                            this.state.projectId,
-                            this.state.buildId,
-                            this.state.attachmentTimelineId,
-                            recordId,
-                            "JSON_RESULT",
-                            attachment.name,
-                        )
-                        const currentReport = this.decode<Report>(buffer)
-                        if (!this.state.reports.some(report=>report.ArtifactName==currentReport.ArtifactName)) {
-                            this.setState(prevState => ({
-                                reports: [...prevState.reports, currentReport]
-                            }))
-                        }
-                        
-                    }catch{
-                        console.log("Failed to decode results attachment")
+                const recordId = this.state.recordIds.find(recordId => attachment._links.self.href.includes(recordId))
+                try {
+                    const buffer = await this.buildClient.getAttachment(
+                        this.state.projectId,
+                        this.state.buildId,
+                        this.state.attachmentTimelineId,
+                        recordId,
+                        "JSON_RESULT",
+                        attachment.name,
+                    )
+                    const currentReport = this.decode<Report>(buffer)
+                    if (!this.state.reports.some(report=>report.ArtifactName==currentReport.ArtifactName)) {
+                        this.setState(prevState => ({
+                            reports: [...prevState.reports, currentReport]
+                        }))
                     }
+                    
+                }catch{
+                    console.log("Failed to decode results attachment")
                 }
             }
 
             return this.state.reports
         }
-        return undefined
+
+        return
     }
 
     render() {
         return (
             this.state.status == TimelineRecordState.Completed ?
-                <ReportsPane summary={this.state.summary} getReport={this.handleGetReport} assuranceReports={this.state.assuranceReports} />
+                <ReportsPane summary={this.state.summary}
+                    getReports={this.handleGetReports}
+                    assuranceReports={this.state.assuranceReports} />
                 :
                 (this.state.error !== "" ?
                     <Crash message={this.state.error} />

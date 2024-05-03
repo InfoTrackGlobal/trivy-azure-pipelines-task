@@ -4,6 +4,7 @@ import {
     countReportMisconfigurations,
     countReportSecrets,
     countReportVulnerabilities,
+    getImageName,
     Report
 } from './trivy';
 import {Card} from "azure-devops-ui/Card";
@@ -29,8 +30,8 @@ export class ReportStats extends React.Component<ReportStatsProps> {
             },
             {
                 name: "Target",
-                value: this.props.report.ArtifactName,
-                width: '220px'
+                value: getImageName(this.props.report.ArtifactName),
+                width: '300px'
             },
             {
                 name: "Total Issues",

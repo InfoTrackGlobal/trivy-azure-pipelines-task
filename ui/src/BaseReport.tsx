@@ -55,13 +55,25 @@ export class BaseReport extends React.Component<BaseReportProps, BaseReportState
         return total
     }
 
-    componentDidUpdate(_prevProps: Readonly<BaseReportProps>, prevState: Readonly<BaseReportState>): void {
-        if (prevState.selectedTabId == "secrets") {
-            if (this.props.report.Results) {
-                if (this.props.report.Results.reduce((acc, result) => acc + (result.Secrets ? result.Secrets.length : 0), 0) == 0) {
-                    this.setState({ selectedTabId: "misconfigurations" })
-                }
+    componentDidUpdate(prevProps: Readonly<BaseReportProps>, prevState: Readonly<BaseReportState>, snapshot?: any): void {
+        if (prevState.selectedTabId === this.state.selectedTabId && prevProps.report !== this.props.report) {
+            if (countReportSecrets(this.props.report) !== 0) {
+                this.setState({ selectedTabId: "secrets" })
+            } else if (countReportVulnerabilities(this.props.report) !== 0) {
+                this.setState({ selectedTabId: "vulnerabilities" })
+            } else if (countReportMisconfigurations(this.props.report) !== 0) {
+                this.setState({ selectedTabId: "misconfigurations" })
             }
+        }
+    }
+
+    componentDidMount(): void {
+        if (countReportSecrets(this.props.report) !== 0) {
+            return
+        } else if (countReportVulnerabilities(this.props.report) !== 0) {
+            this.setState({ selectedTabId: "vulnerabilities" })
+        } else if (countReportMisconfigurations(this.props.report) !== 0) {
+            this.setState({ selectedTabId: "misconfigurations" })
         }
     }
 
