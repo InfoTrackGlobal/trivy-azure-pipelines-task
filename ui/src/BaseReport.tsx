@@ -3,9 +3,11 @@ import {
     AssuranceReport,
     countReportMisconfigurations,
     countReportSecrets,
+    countReportVulnerabilities,
     Report
 } from './trivy';
 import { SecretsTable } from "./SecretsTable";
+import { VulnerabilitiesTable } from "./VulnerabilitiesTable";
 import { MisconfigurationsTable } from "./MisconfigurationsTable";
 import { Tab, TabBar, TabSize } from "azure-devops-ui/Tabs";
 import { AssuranceTable } from "./AssuranceTable";
@@ -53,11 +55,25 @@ export class BaseReport extends React.Component<BaseReportProps, BaseReportState
         return total
     }
 
-    componentDidUpdate(_prevProps: Readonly<BaseReportProps>, prevState: Readonly<BaseReportState>): void {
-        if (prevState.selectedTabId == "secrets") {
-            if (this.props.report.Results.reduce((acc, result) => acc + (result.Secrets ? result.Secrets.length : 0), 0) == 0) {
+    componentDidUpdate(prevProps: Readonly<BaseReportProps>, prevState: Readonly<BaseReportState>, snapshot?: any): void {
+        if (prevState.selectedTabId === this.state.selectedTabId && prevProps.report !== this.props.report) {
+            if (countReportSecrets(this.props.report) !== 0) {
+                this.setState({ selectedTabId: "secrets" })
+            } else if (countReportVulnerabilities(this.props.report) !== 0) {
+                this.setState({ selectedTabId: "vulnerabilities" })
+            } else if (countReportMisconfigurations(this.props.report) !== 0) {
                 this.setState({ selectedTabId: "misconfigurations" })
             }
+        }
+    }
+
+    componentDidMount(): void {
+        if (countReportSecrets(this.props.report) !== 0) {
+            return
+        } else if (countReportVulnerabilities(this.props.report) !== 0) {
+            this.setState({ selectedTabId: "vulnerabilities" })
+        } else if (countReportMisconfigurations(this.props.report) !== 0) {
+            this.setState({ selectedTabId: "misconfigurations" })
         }
     }
 
@@ -72,6 +88,8 @@ export class BaseReport extends React.Component<BaseReportProps, BaseReportState
                     >
                         <Tab id="secrets" name="Secrets" key="secrets"
                             badgeCount={countReportSecrets(this.props.report)} />
+                        <Tab id="vulnerabilities" name="Vulnerabilities" key="vulnerabilities"
+                            badgeCount={countReportVulnerabilities(this.props.report)} />
                         <Tab id="misconfigurations" name="Misconfigurations" key="misconfigurations"
                             badgeCount={countReportMisconfigurations(this.props.report)} />
                         {
@@ -85,6 +103,12 @@ export class BaseReport extends React.Component<BaseReportProps, BaseReportState
                         this.state.selectedTabId === "secrets" &&
                         <div className="flex-grow">
                             <SecretsTable results={this.props.report.Results} defaultBranch={this.props.report.DefaultBranch} artifactName={this.props.report.ArtifactName} />
+                        </div>
+                    }
+                    {
+                        this.state.selectedTabId === "vulnerabilities" &&
+                        <div className="flex-grow">
+                            <VulnerabilitiesTable results={this.props.report.Results} />
                         </div>
                     }
                     {

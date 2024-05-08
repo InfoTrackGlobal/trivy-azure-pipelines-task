@@ -25,6 +25,7 @@ type AppState = {
     attachmentTimelineId: string
     buildId: number
     projectId: string
+    recordIds: string[]
 }
 
 interface AppProps {
@@ -38,7 +39,7 @@ export class App extends React.Component<AppProps, AppState> {
     private buildId: number;
     public props: AppProps;
 
-    constructor(props) {
+    constructor(props: Readonly<AppProps>) {
         super(props)
 
         this.state = {
@@ -52,9 +53,10 @@ export class App extends React.Component<AppProps, AppState> {
             attachmentTimelineId: "",
             buildId: 0,
             projectId: "",
+            recordIds: []
         }
 
-        this.handleGetReport = this.handleGetReport.bind(this);
+        this.handleGetReports = this.handleGetReports.bind(this);
     }
 
     async check() {
@@ -77,24 +79,24 @@ export class App extends React.Component<AppProps, AppState> {
         let attachmentRecordId = ""
 
         timeline.records.forEach(function (record: TimelineRecord) {
-            if (record.type == "Task" && record.task !== null && record.name == "trivy") {
-                recordIds.push(record.id)
-                recordStates.push(record.state)
-                attachmentRecordId = record.id
+            if (record.type == "Task" && record.task !== null && record.name == "trivy_summary") {
                 summaryId = record.id
             }
 
-            if (record.type == "Task" && record.task !== null && record.name == "trivy_summary") {
-                summaryId = record.id
+            else if (record.type == "Task" && record.task !== null && record.name.startsWith("trivy")) {
+                recordIds.push(record.id)
+                recordStates.push(record.state)
+                attachmentRecordId = record.id
             }
         })
 
         if (recordIds.length === 0) {
+            this.setState({ status: TimelineRecordState.Pending })
             setTimeout(this.check.bind(this), this.props.checkInterval)
             return
         }
 
-        this.setState({ attachmentRecordId: attachmentRecordId, attachmentTimelineId: timeline.id })
+        this.setState({ attachmentRecordId: attachmentRecordId, attachmentTimelineId: timeline.id, recordIds: recordIds })
 
         let worstState: TimelineRecordState = 999
         recordStates.forEach(function (state: TimelineRecordState) {
@@ -190,36 +192,71 @@ export class App extends React.Component<AppProps, AppState> {
         return JSON.parse(output);
     }
 
-    async handleGetReport(name: string): Promise<Report | undefined> {
-        const report = this.state.reports.find(r => r.ArtifactName === name)
-        if (report) {
-            return report
+    async handleGetReports(name: string): Promise<Report[] | undefined> {
+        if (this.state.summary.results.length > 1) {
+            const report = this.state.reports.find(r => r.ArtifactName === name)
+            if (report) {
+                return [report]
+            }
+
+            try {
+                const buffer = await this.buildClient.getAttachment(
+                    this.state.projectId,
+                    this.state.buildId,
+                    this.state.attachmentTimelineId,
+                    this.state.attachmentRecordId,
+                    "JSON_RESULT",
+                    `trivy-${name}`,
+                )
+                const report = this.decode<Report>(buffer)
+                this.setState({ reports: [...this.state.reports, report] })
+
+                return [report]
+            } catch (e) {
+                console.log("Failed to decode results attachment")
+            }
+        }
+        else {
+            const attachments = await this.buildClient.getAttachments(this.state.projectId, this.state.buildId, "JSON_RESULT")
+            if (attachments.length === 0) {
+                this.setState({error: "No attachments found: cannot load results. Did Trivy run properly?"})
+                return
+            }
+            for ( const attachment of attachments) {
+                const recordId = this.state.recordIds.find(recordId => attachment._links.self.href.includes(recordId))
+                try {
+                    const buffer = await this.buildClient.getAttachment(
+                        this.state.projectId,
+                        this.state.buildId,
+                        this.state.attachmentTimelineId,
+                        recordId,
+                        "JSON_RESULT",
+                        attachment.name,
+                    )
+                    const currentReport = this.decode<Report>(buffer)
+                    if (!this.state.reports.some(report=>report.ArtifactName==currentReport.ArtifactName)) {
+                        this.setState(prevState => ({
+                            reports: [...prevState.reports, currentReport]
+                        }))
+                    }
+                    
+                }catch{
+                    console.log("Failed to decode results attachment")
+                }
+            }
+
+            return this.state.reports
         }
 
-        try {
-            const buffer = await this.buildClient.getAttachment(
-                this.state.projectId,
-                this.state.buildId,
-                this.state.attachmentTimelineId,
-                this.state.attachmentRecordId,
-                "JSON_RESULT",
-                `trivy-${name}`,
-            )
-            const report = this.decode<Report>(buffer)
-            this.setState({ reports: [...this.state.reports, report] })
-
-            return report
-        } catch (e) {
-            console.log("Failed to decode results attachment")
-        }
-
-        return undefined
+        return
     }
 
     render() {
         return (
             this.state.status == TimelineRecordState.Completed ?
-                <ReportsPane summary={this.state.summary} getReport={this.handleGetReport} assuranceReports={this.state.assuranceReports} />
+                <ReportsPane summary={this.state.summary}
+                    getReports={this.handleGetReports}
+                    assuranceReports={this.state.assuranceReports} />
                 :
                 (this.state.error !== "" ?
                     <Crash message={this.state.error} />

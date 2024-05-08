@@ -20,18 +20,23 @@ import {
     AssuranceReport,
     Report,
     Summary,
-    SummaryEntry
+    SummaryEntry,
+    countReportIssues,
+    getReportTitle
 } from './trivy';
+import { Spinner, SpinnerSize } from "azure-devops-ui/Spinner";
 
 interface ReportsPaneProps {
     summary: Summary
-    getReport: (name: string) => Promise<Report | undefined>
+    getReports: (name: string) => Promise<Report[] | undefined>
     assuranceReports: AssuranceReport[]
 }
 
 interface ReportsPaneState {
-    selectedTabId: string
-    report?: Report
+    selectedTabId: string,
+    selectedReportTabId: string,
+    reports?: Report[]
+    isLoading: boolean
 }
 
 interface FilterState {
@@ -70,24 +75,37 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
         }, FILTER_CHANGE_EVENT)
 
         this.state = {
-            selectedTabId: ""
+            selectedTabId: "",
+            selectedReportTabId: "",
+            isLoading: true,
         }
     }
 
-    private onSelectedTabChanged = (newTabId: string) => {
-        this.setState({ selectedTabId: newTabId })
-        this.props.getReport(newTabId).then(report => {
-            this.setState({ report: report })
-        })
+    private onSelectedTabChanged = async (newTabId: string) => {
+        this.setState({ selectedTabId: newTabId, isLoading: true })
+        const reports = await this.props.getReports(newTabId)
+        this.setState({ reports, isLoading: false})
     };
 
+    private onSelectedReportTabChanged = (newTabId: string) => {
+        this.setState({ selectedReportTabId: newTabId });
+    };
+
+    private getReport(): Report {
+        if (this.state.reports && this.state.reports?.length > 0) {
+            return this.state.reports[parseInt(this.state.selectedReportTabId)]
+        }
+
+        return undefined
+    }
+
     private getAssuranceReport(): AssuranceReport | undefined {
-        if (this.state.report === null) {
+        if (this.state.reports === null) {
             return undefined
         }
         let assuranceReport: AssuranceReport | undefined = undefined
         this.props.assuranceReports.forEach(match => {
-            if (this.state.report?.ArtifactType == match.Report.ArtifactType && this.state.report?.ArtifactName == match.Report.ArtifactName) {
+            if (this.getReport()?.ArtifactType == match.Report.ArtifactType && this.getReport()?.ArtifactName == match.Report.ArtifactName) {
                 assuranceReport = match
             }
         })
@@ -99,10 +117,12 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
             const worstRepository = this.props.summary.results.reduce(
                 (previous, current) => previous.secretsCount < current.secretsCount ? current : previous).repository
 
-            this.props.getReport(worstRepository).then(report => {
+            this.props.getReports(worstRepository).then(reports => {
                 this.setState({
-                    report: report,
-                    selectedTabId: worstRepository
+                    reports: reports,
+                    selectedTabId: worstRepository,
+                    selectedReportTabId: "0",
+                    isLoading: false
                 })
             })
         }
@@ -116,15 +136,19 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
             },
             {
                 name: "Total Issues",
-                value: this.props.summary.results.reduce((previous, current) => previous += current.secretsCount + current.misconfigurationCount, 0)
+                value: this.props.summary.results?.reduce((previous, current) => previous += current.secretsCount ?? 0 + current.misconfigurationCount ?? 0 + current.vulnerabilityCount ?? 0, 0)
+            },
+            {
+                name: "Vulnerabilities",
+                value: this.props.summary.results?.reduce((previous, current) => previous += current.vulnerabilityCount ?? 0, 0)
             },
             {
                 name: "Misconfigurations",
-                value: this.props.summary.results.reduce((previous, current) => previous += current.misconfigurationCount, 0)
+                value: this.props.summary.results?.reduce((previous, current) => previous += current.misconfigurationCount ?? 0, 0)
             },
             {
                 name: "Secrets",
-                value: this.props.summary.results.reduce((previous, current) => previous += current.secretsCount, 0)
+                value: this.props.summary.results?.reduce((previous, current) => previous += current.secretsCount ?? 0, 0)
             }
         ]
 
@@ -226,14 +250,41 @@ export class ReportsPane extends React.Component<ReportsPaneProps, ReportsPaneSt
                                         </div>
                                     </>
                                 }
+                                {
+                                    this.state.reports && this.state.reports.length > 1 &&
+                                        <div className="flex-row">
+                                            <TabBar
+                                                onSelectedTabChanged={this.onSelectedReportTabChanged}
+                                                selectedTabId={this.state.selectedReportTabId}
+                                                tabSize={TabSize.Tall}
+                                            >
+                                                {
+                                                    this.state.reports?.map(function (report: Report, index: number) {
+                                                        return (
+                                                            <Tab
+                                                                key={index}
+                                                                id={index + ""}
+                                                                name={getReportTitle(report)}
+                                                                badgeCount={countReportIssues(report)}
+                                                            />
+                                                        )
+                                                    })
+                                                }
+                                                </TabBar>
+                                        </div>
+                                }
                                 <div className="flex-grow">
                                     <div className="tab-content">
                                         {
-                                            this.state.report ?
-                                                this.state.report.ArtifactType == ArtifactType.Image ?
-                                                    <ImageReport report={this.state.report} assurance={this.getAssuranceReport()} /> :
-                                                    <FilesystemReport report={this.state.report} assurance={this.getAssuranceReport()} />
-                                                : <div></div>
+                                            this.state.reports && !this.state.isLoading ?
+                                                this.getReport()?.ArtifactType == ArtifactType.Image ?
+                                                    <ImageReport report={this.getReport()} assurance={this.getAssuranceReport()} />
+                                                    :
+                                                    <FilesystemReport report={this.getReport()} assurance={this.getAssuranceReport()} />
+                                                :
+                                                <div className="flex-center" style={{paddingTop: "100px"}}>
+                                                    <Spinner label={"Loading..."} size={SpinnerSize.large}/>
+                                                </div>
                                         }
                                     </div>
                                 </div>
