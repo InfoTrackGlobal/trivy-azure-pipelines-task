@@ -82,7 +82,12 @@ export class App extends React.Component<AppProps, AppState> {
             if (record.type == "Task" && record.task !== null && record.name == "trivy_summary") {
                 summaryId = record.id
             }
-
+            else if (record.type == "Task" && record.task !== null && record.name == "trivy") {
+                recordIds.push(record.id)
+                recordStates.push(record.state)
+                attachmentRecordId = record.id
+                summaryId = record.id
+            }
             else if (record.type == "Task" && record.task !== null && record.name.startsWith("trivy")) {
                 recordIds.push(record.id)
                 recordStates.push(record.state)
